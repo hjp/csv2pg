@@ -1,0 +1,82 @@
+#!/usr/bin/python3
+
+import argparse
+import csv
+import psycopg2
+
+ap = argparse.ArgumentParser(description="Import a CSV file into a PostgreSQL table")
+ap.add_argument("--dbname")
+ap.add_argument("--dbuser")
+ap.add_argument("--delimiter", default=",")
+ap.add_argument("--null", default="\\N")
+ap.add_argument("filename")
+
+a = ap.parse_args()
+
+connectstring = ""
+if a.dbname:
+    connectstring += " dbname=%s" % a.dbname
+if a.dbuser:
+    connectstring += " user=%s" % a.dbuser
+db = psycopg2.connect(connectstring)
+
+tablename = a.filename.rpartition("/")[2].partition(".")[0]
+
+with open(a.filename) as f:
+    csvrd = csv.reader(f, delimiter=a.delimiter)
+    header = next(csvrd)
+    lines = []
+    for line in csvrd:
+        lines.append(line)
+
+types = [{"int", "float8", "text"} for _ in header]
+nullable = [False for _ in  header]
+
+for i in range(len(header)):
+    for line in lines:
+        v = line[i]
+        if v == a.null:
+            line[i] = None
+            v = None
+        if v is None:
+            nullable[i] = True
+        else:
+            if "int" in types[i]:
+                try:
+                    vv = int(v)
+                    if vv > 0x7FFFFFFF:
+                        types[i] -= {"int"}
+                except:
+                     types[i] -= {"int"}
+            if "float8" in types[i]:
+                try:
+                    vv = float(v)
+                except:
+                    types[i] -= {"float8"}
+
+columns = []
+
+for i in range(len(header)):
+
+    cdef = header[i]
+
+    for t in ("int", "float8", "text"):
+        if t in types[i]:
+            cdef += " " + t
+            break
+
+    if not nullable[i]:
+        cdef += " not null"
+
+    columns.append(cdef)
+
+create_q = "create table " + tablename + " (" + ", ".join(columns) + ")"
+print(create_q)
+csr = db.cursor()
+csr.execute(create_q)
+
+insert_q = "insert into " + tablename + " (" + ", ".join(header) + ") values (" + ", ".join(["%s" for _ in header]) + ")"
+for line in lines:
+    csr.execute(insert_q, line)
+
+db.commit()
