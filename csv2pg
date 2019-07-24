@@ -3,6 +3,7 @@
 import argparse
 import csv
 import psycopg2
+import re
 
 ap = argparse.ArgumentParser(description="Import a CSV file into a PostgreSQL table")
 ap.add_argument("--dbname")
@@ -26,6 +27,10 @@ if a.tablename:
     tablename = a.tablename
 else:
     tablename = a.filename.rpartition("/")[2].partition(".")[0]
+    tablename = tablename.lower()
+    tablename = re.sub(r'[^a-z0-9_]+', '_', tablename)
+    if re.match('[0-9]', tablename):
+        tablename = "t_" + tablename
 
 with open(a.filename) as f:
     csvrd = csv.reader(f, delimiter=a.delimiter)
