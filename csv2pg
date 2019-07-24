@@ -9,6 +9,8 @@ ap.add_argument("--dbname")
 ap.add_argument("--dbuser")
 ap.add_argument("--delimiter", default=",")
 ap.add_argument("--null", default="\\N")
+ap.add_argument("--tablename")
+ap.add_argument("--drop", action='store_true')
 ap.add_argument("filename")
 
 a = ap.parse_args()
@@ -20,7 +22,10 @@ if a.dbuser:
     connectstring += " user=%s" % a.dbuser
 db = psycopg2.connect(connectstring)
 
-tablename = a.filename.rpartition("/")[2].partition(".")[0]
+if a.tablename:
+    tablename = a.tablename
+else:
+    tablename = a.filename.rpartition("/")[2].partition(".")[0]
 
 with open(a.filename) as f:
     csvrd = csv.reader(f, delimiter=a.delimiter)
@@ -70,9 +75,13 @@ for i in range(len(header)):
 
     columns.append(cdef)
 
+csr = db.cursor()
+if a.drop:
+    drop_q = "drop table if exists " + tablename
+    print(drop_q)
+    csr.execute(drop_q)
 create_q = "create table " + tablename + " (" + ", ".join(columns) + ")"
 print(create_q)
-csr = db.cursor()
 csr.execute(create_q)
 
 insert_q = "insert into " + tablename + " (" + ", ".join(header) + ") values (" + ", ".join(["%s" for _ in header]) + ")"
