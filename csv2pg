@@ -7,11 +7,13 @@ import re
 
 ap = argparse.ArgumentParser(description="Import a CSV file into a PostgreSQL table")
 ap.add_argument("--dbname")
+ap.add_argument("--dbport")
 ap.add_argument("--dbuser")
 ap.add_argument("--delimiter", default=",")
 ap.add_argument("--null", default="\\N")
 ap.add_argument("--tablename")
 ap.add_argument("--drop", action='store_true')
+ap.add_argument("--encoding")
 ap.add_argument("filename")
 
 a = ap.parse_args()
@@ -21,6 +23,8 @@ if a.dbname:
     connectstring += " dbname=%s" % a.dbname
 if a.dbuser:
     connectstring += " user=%s" % a.dbuser
+if a.dbport:
+    connectstring += " port=%s" % a.dbport
 db = psycopg2.connect(connectstring)
 
 if a.tablename:
@@ -32,7 +36,7 @@ else:
     if re.match('[0-9]', tablename):
         tablename = "t_" + tablename
 
-with open(a.filename) as f:
+with open(a.filename, newline='', encoding=a.encoding) as f:
     csvrd = csv.reader(f, delimiter=a.delimiter)
     header = next(csvrd)
     lines = []
