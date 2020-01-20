@@ -78,6 +78,9 @@ for i in range(len(header)):
 columns = []
 
 for i in range(len(header)):
+    header[i] = header[i].replace(" ", "_")
+
+for i in range(len(header)):
 
     cdef = header[i]
 
