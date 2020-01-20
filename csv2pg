@@ -42,12 +42,19 @@ with open(a.filename, newline='', encoding=a.encoding) as f:
     lines = []
     for line in csvrd:
         lines.append(line)
+        while len(line) > len(header):
+            header.append("")
+    for i in range(len(header)):
+        if header[i] == "":
+            header[i] = "_col_%d" % (i + 1)
 
 types = [{"int", "float8", "text"} for _ in header]
 nullable = [False for _ in  header]
 
 for i in range(len(header)):
     for line in lines:
+        while len(line) < len(header):
+            line.append(None)
         v = line[i]
         if v == a.null:
             line[i] = None
