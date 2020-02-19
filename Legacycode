@@ -1,0 +1,14 @@
+# Based on Fefe's talk at 36c3:
+# https://www.youtube.com/watch?v=31xA9p3pYE4
+
+O++     # No explicit license yet, but ...
+S++     # The source code is public and you can change it
+I++     # I have done this multiple times before. I know what I'm doing (but do you know what I'm doing?)
+C       # I'm the only user I know about.
+E       # Well, mostly. And the remaining case is simple
+M+      # For now. I may think of new features in the future
+V+      # Well, the updates aren't regular, but they shouldn't break anything
+!PS     # Not complex enough to need a spec
+D+      # Only the obvious dependencies
+
+# vim: tw=0
