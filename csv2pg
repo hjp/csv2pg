@@ -3,6 +3,7 @@
 import argparse
 import csv
 import psycopg2
+import psycopg2.extensions
 import re
 
 ap = argparse.ArgumentParser(description="Import a CSV file into a PostgreSQL table")
@@ -14,6 +15,7 @@ ap.add_argument("--null", default="\\N")
 ap.add_argument("--tablename")
 ap.add_argument("--drop", action='store_true')
 ap.add_argument("--encoding")
+ap.add_argument("--quote-columns", action='store_true')
 ap.add_argument("filename")
 
 a = ap.parse_args()
@@ -82,7 +84,10 @@ for i in range(len(header)):
 
 for i in range(len(header)):
 
-    cdef = header[i]
+    if a.quote_columns:
+        cdef = psycopg2.extensions.quote_ident(header[i], db)
+    else:
+        cdef = header[i]
 
     for t in ("int", "float8", "text"):
         if t in types[i]:
@@ -103,7 +108,12 @@ create_q = "create table " + tablename + " (" + ", ".join(columns) + ")"
 print(create_q)
 csr.execute(create_q)
 
-insert_q = "insert into " + tablename + " (" + ", ".join(header) + ") values (" + ", ".join(["%s" for _ in header]) + ")"
+if a.quote_columns:
+    column_list = [psycopg2.extensions.quote_ident(h, db) for h in header]
+else:
+    column_list = header
+
+insert_q = "insert into " + tablename + " (" + ", ".join(column_list) + ") values (" + ", ".join(["%s" for _ in header]) + ")"
 for line in lines:
     csr.execute(insert_q, line)
 
