@@ -16,6 +16,7 @@ ap.add_argument("--tablename")
 ap.add_argument("--drop", action='store_true')
 ap.add_argument("--encoding")
 ap.add_argument("--quote-columns", action='store_true')
+ap.add_argument("--types", nargs="*")
 ap.add_argument("filename")
 
 a = ap.parse_args()
@@ -51,6 +52,15 @@ with open(a.filename, newline='', encoding=a.encoding) as f:
             header[i] = "_col_%d" % (i + 1)
 
 types = [{"int", "float8", "text"} for _ in header]
+if a.types:
+    coltypes = {}
+    for t in a.types:
+        col, typ = t.split("=")
+        coltypes[col] = typ
+    for i, col in enumerate(header):
+        if col in coltypes:
+            types[i] = {coltypes[col]}
+
 nullable = [False for _ in  header]
 
 for i in range(len(header)):
