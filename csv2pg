@@ -57,12 +57,15 @@ with open(a.filename, newline='', encoding=a.encoding) as f:
         if header[i] == "":
             header[i] = "_col_%d" % (i + 1)
 
-types = [{"int", "float8", "text"} for _ in header]
+available_types = ["int", "float8", "text"]
+types = [set(available_types) for _ in header]
 if a.types:
     coltypes = {}
     for t in a.types:
         col, typ = t.split("=")
         coltypes[col] = typ
+        if typ not in available_types:
+            available_types.append(typ)
     for i, col in enumerate(header):
         if col in coltypes:
             types[i] = {coltypes[col]}
@@ -105,7 +108,7 @@ for i in range(len(header)):
     else:
         cdef = header[i]
 
-    for t in ("int", "float8", "text"):
+    for t in available_types:
         if t in types[i]:
             cdef += " " + t
             break
