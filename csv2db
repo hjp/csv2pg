@@ -2,14 +2,14 @@
 
 import argparse
 import csv
-import psycopg2
-import psycopg2.extensions
 import re
 
 ap = argparse.ArgumentParser(description="Import a CSV file into a PostgreSQL table")
+ap.add_argument("--dbtype", default='pg')
 ap.add_argument("--dbname")
 ap.add_argument("--dbport")
 ap.add_argument("--dbuser")
+ap.add_argument("--dbpassword")
 ap.add_argument("--delimiter", default=",")
 ap.add_argument("--null", default="\\N")
 ap.add_argument("--tablename")
@@ -20,15 +20,35 @@ ap.add_argument("--types", nargs="*")
 ap.add_argument("filename")
 
 a = ap.parse_args()
+if a.dbtype == 'pg':
+    import psycopg2
+    import psycopg2.extensions
 
-connectstring = ""
-if a.dbname:
-    connectstring += " dbname=%s" % a.dbname
-if a.dbuser:
-    connectstring += " user=%s" % a.dbuser
-if a.dbport:
-    connectstring += " port=%s" % a.dbport
-db = psycopg2.connect(connectstring)
+    connectstring = ""
+    if a.dbname:
+        connectstring += " dbname=%s" % a.dbname
+    if a.dbuser:
+        connectstring += " user=%s" % a.dbuser
+    if a.dbport:
+        connectstring += " port=%s" % a.dbport
+    db = psycopg2.connect(connectstring)
+elif a.dbtype == 'mysql':
+    import mysql.connector
+    raise NotImplementedErrror()
+elif a.dbtype == 'mysqldb':
+    import MySQLdb
+
+    kwargs = {}
+    if a.dbname:
+        kwargs["database"] = a.dbname
+    if a.dbuser:
+        kwargs["user"] = a.dbuser
+    if a.dbpassword:
+        kwargs["password"] = a.dbpassword
+    db = MySQLdb.connect(**kwargs)
+else:
+    raise NotImplementedError()
+
 
 if a.tablename:
     tablename = a.tablename
@@ -99,10 +119,15 @@ for i in range(len(header)):
     else:
         cdef = header[i]
 
-    for t in ("int", "float8", "text"):
-        if t in types[i]:
-            cdef += " " + t
-            break
+    if header[i] in coltypes:
+        # we have explicitely specified the type:
+        cdef += " " + coltypes[header[i]]
+    else:
+        # find most specific possible type
+        for t in ("int", "float8", "text"):
+            if t in types[i]:
+                cdef += " " + t
+                break
 
     if not nullable[i]:
         cdef += " not null"
