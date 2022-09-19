@@ -19,6 +19,7 @@ ap.add_argument("--drop", action='store_true')
 ap.add_argument("--encoding")
 ap.add_argument("--quote-columns", action='store_true')
 ap.add_argument("--types", nargs="*")
+ap.add_argument("--verbose", action='store_true')
 ap.add_argument("filename")
 
 a = ap.parse_args()
@@ -73,7 +74,7 @@ if a.types:
 nullable = [False for _ in  header]
 
 for i in range(len(header)):
-    for line in lines:
+    for lnr, line in enumerate(lines):
         while len(line) < len(header):
             line.append(None)
         v = line[i]
@@ -87,13 +88,19 @@ for i in range(len(header)):
                 try:
                     vv = int(v)
                     if vv > 0x7FFFFFFF:
+                        if a.verbose:
+                            print(f"{lnr+2}:{i+1}:", vv, "too large for int")
                         types[i] -= {"int"}
                 except:
-                     types[i] -= {"int"}
+                    if a.verbose:
+                        print(f"{lnr+2}:{i+1}:", v, "not an int")
+                    types[i] -= {"int"}
             if "float8" in types[i]:
                 try:
                     vv = float(v)
                 except:
+                    if a.verbose:
+                        print(f"{lnr+2}:{i+1}:", v, "not a float8")
                     types[i] -= {"float8"}
 
 columns = []
