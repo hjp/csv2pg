@@ -2,6 +2,7 @@
 
 import argparse
 import csv
+import locale
 import psycopg2
 import psycopg2.extensions
 import re
@@ -13,13 +14,15 @@ ap.add_argument("--dbuser")
 ap.add_argument("--schema")
 ap.add_argument("--delimiter", default=",")
 ap.add_argument("--tsv", action="store_const", const="\t", dest="delimiter")
-ap.add_argument("--null", default="\\N")
+ap.add_argument("--null", nargs="*", default=[ "\\N" ])
 ap.add_argument("--tablename")
 ap.add_argument("--drop", action='store_true')
 ap.add_argument("--encoding")
 ap.add_argument("--quote-columns", action='store_true')
 ap.add_argument("--types", nargs="*")
 ap.add_argument("--verbose", action='store_true')
+ap.add_argument("--numeric-locale")
+ap.add_argument("--strip", action="store_true")
 ap.add_argument("filename")
 
 a = ap.parse_args()
@@ -73,12 +76,16 @@ if a.types:
 
 nullable = [False for _ in  header]
 
+if a.numeric_locale:
+    locale.setlocale(locale.LC_NUMERIC, a.numeric_locale)
 for i in range(len(header)):
     for lnr, line in enumerate(lines):
         while len(line) < len(header):
             line.append(None)
+        if a.strip:
+            line[i] = line[i].strip()
         v = line[i]
-        if v == a.null:
+        if v in a.null:
             line[i] = None
             v = None
         if v is None:
@@ -86,7 +93,7 @@ for i in range(len(header)):
         else:
             if "int" in types[i]:
                 try:
-                    vv = int(v)
+                    vv = locale.atoi(v)
                     if vv > 0x7FFFFFFF:
                         if a.verbose:
                             print(f"{lnr+2}:{i+1}:", vv, "too large for int")
@@ -97,12 +104,20 @@ for i in range(len(header)):
                     types[i] -= {"int"}
             if "float8" in types[i]:
                 try:
-                    vv = float(v)
+                    vv = locale.atof(v)
                 except:
                     if a.verbose:
                         print(f"{lnr+2}:{i+1}:", v, "not a float8")
                     types[i] -= {"float8"}
 
+    if "int" in types[i]:
+        for lnr, line in enumerate(lines):
+            if line[i] is not None:
+                line[i] = locale.atoi(line[i])
+    elif "float8" in types[i]:
+        for lnr, line in enumerate(lines):
+            if line[i] is not None:
+                line[i] = locale.atof(line[i])
 columns = []
 
 for i in range(len(header)):
